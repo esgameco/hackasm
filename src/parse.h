@@ -8,27 +8,6 @@
 #include <algorithm>
 #include <map>
 
-// Unused
-enum class BitType
-{
-    JGT,
-    JEQ,
-    JLT,
-    M,
-    D,
-    A,
-    c6,
-    c5,
-    c4,
-    c3,
-    c2,
-    c1,
-    a,
-    n2,
-    n1,
-    ins
-};
-
 class Parse
 {
 public:
@@ -54,7 +33,7 @@ private:
     const std::vector<char> labelBreaks = {')'};
     const std::vector<char> atBreaks = {'/'};
     const std::vector<char> whitespace = {' ', '\t', '\r', '\n', '\v', '\f'};
-    const std::map<std::string, int> defaultLabels = {
+    const std::map<std::string, int> defaultLabels{
         {"R0", 0},
         {"R1", 1},
         {"R2", 2},
@@ -78,5 +57,52 @@ private:
         {"THAT", 4},
         {"SCREEN", 16384},
         {"KBD", 24575},
+    };
+    // Stats at 0
+    const std::map<std::string, int> jmpTable{
+        {"JGT", 0b1},
+        {"JEQ", 0b10},
+        {"JGE", 0b11},
+        {"JLT", 0b100},
+        {"JNE", 0b101},
+        {"JLE", 0b110},
+        {"JMP", 0b111},
+    };
+    // 1 << x
+    const std::map<char, int> destTable{
+        {'A', 5},
+        {'D', 4},
+        {'M', 3}
+    };
+    // Do << 6 at the end
+    const std::map<std::string, int> ctrlTable{
+        {"0", 0b0101010},
+        {"1", 0b0111111},
+        {"-1", 0b0111010},
+        {"D", 0b0001100},
+        {"A", 0b0110000},
+        {"!D", 0b0001101},
+        {"!A", 0b0110001},
+        {"-D", 0b0001111},
+        {"-A", 0b0110011},
+        {"D+1", 0b0011111},
+        {"A+1", 0b0110111},
+        {"D-1", 0b0001110},
+        {"A-1", 0b0110010},
+        {"D+A", 0b0000010},
+        {"D-A", 0b0010011},
+        {"A-D", 0b0000111},
+        {"D&A", 0b0000000},
+        {"D|A", 0b0010101},
+        {"M", 0b1110000},
+        {"!M", 0b1110001},
+        {"-M", 0b1110011},
+        {"M+1", 0b1110111},
+        {"M-1", 0b1110010},
+        {"D+M", 0b1000010},
+        {"D-M", 0b1010011},
+        {"M-D", 0b1000111},
+        {"D&M", 0b1000000},
+        {"D|M", 0b1010101},
     };
 };

@@ -1,5 +1,6 @@
 #include "parse.h"
 
+// Parses .asm file and returns a vector of 16-bit instructions
 std::vector<uint16_t> Parse::parseFile(const std::string& fileName)
 {
     std::ifstream file;
@@ -27,15 +28,16 @@ std::vector<uint16_t> Parse::parseFile(const std::string& fileName)
             if (!error)
                 instructions.push_back(instruction);
         }
+
+        file.close();
     }
     else
         std::cout << "File didn't open." << std::endl;
 
-    file.close();
-
     return instructions;
 }
 
+// Performs the first pass by parsing the labels and ignoring the returned instructions
 void Parse::parseLabels(const std::vector<std::string>& instructions, std::map<std::string, int>& labels)
 {
     int currIns = 0;
@@ -50,6 +52,7 @@ void Parse::parseLabels(const std::vector<std::string>& instructions, std::map<s
     }
 }
 
+// Parses an instruction string and returns a 16-bit instruction, also parses labels on the first pass
 uint16_t Parse::parseInstruction
 (
     std::string insStr, 
@@ -98,11 +101,13 @@ uint16_t Parse::parseInstruction
             {
                 try
                 {
+                    // Attempts to set to a number, if it fails then sets to stack
                     int line = std::stoi(at);
                     instruction += line; 
                 }
                 catch (...) 
                 {
+                    // Only uses the stack during the second pass
                     if (!firstPass)
                     {
                         instruction += *currentStack;
@@ -148,103 +153,14 @@ uint16_t Parse::parseInstruction
                 jmp = this->getUntil(insStr, semiPos+1, this->jmpBreaks);
 
             if (jmp.size())
-            {
-                if (jmp == "JGT")
-                    instruction += 0b1;
-                else if (jmp == "JEQ")
-                    instruction += 0b10;
-                else if (jmp == "JGE")
-                    instruction += 0b11;
-                else if (jmp == "JLT")
-                    instruction += 0b100;
-                else if (jmp == "JNE")
-                    instruction += 0b101;
-                else if (jmp == "JLE")
-                    instruction += 0b110;
-                else if (jmp == "JMP")
-                    instruction += 0b111;
-            }
+                instruction += this->jmpTable.at(jmp);
 
             if (dest.size())
-            {
                 for (const auto& c : dest)
-                {
-                    switch (c)
-                    {
-                        case 'A':
-                            instruction += 1 << 5;
-                            break;
-                        case 'D':
-                            instruction += 1 << 4;
-                            break;
-                        case 'M':
-                            instruction += 1 << 3;
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            }
+                    instruction += 1 << this->destTable.at(c);
 
             if (ctrl.size())
-            {
-                if (ctrl == "0")
-                    instruction += 0b0101010 << 6;
-                else if (ctrl == "1")
-                    instruction += 0b0111111 << 6;
-                else if (ctrl == "-1")
-                    instruction += 0b0111010 << 6;
-                else if (ctrl == "D")
-                    instruction += 0b0001100 << 6;
-                else if (ctrl == "A")
-                    instruction += 0b0110000 << 6;
-                else if (ctrl == "!D")
-                    instruction += 0b0001101 << 6;
-                else if (ctrl == "!A")
-                    instruction += 0b0110001 << 6;
-                else if (ctrl == "-D")
-                    instruction += 0b0001111 << 6;
-                else if (ctrl == "-A")
-                    instruction += 0b0110011 << 6;
-                else if (ctrl == "D+1")
-                    instruction += 0b0011111 << 6;
-                else if (ctrl == "A+1")
-                    instruction += 0b0110111 << 6;
-                else if (ctrl == "D-1")
-                    instruction += 0b0001110 << 6;
-                else if (ctrl == "A-1")
-                    instruction += 0b0110010 << 6;
-                else if (ctrl == "D+A")
-                    instruction += 0b0000010 << 6;
-                else if (ctrl == "D-A")
-                    instruction += 0b0010011 << 6;
-                else if (ctrl == "A-D")
-                    instruction += 0b0000111 << 6;
-                else if (ctrl == "D&A")
-                    instruction += 0b0000000 << 6;
-                else if (ctrl == "D|A")
-                    instruction += 0b0010101 << 6;
-                else if (ctrl == "M")
-                    instruction += 0b1110000 << 6;
-                else if (ctrl == "!M")
-                    instruction += 0b1110001 << 6;
-                else if (ctrl == "-M")
-                    instruction += 0b1110011 << 6;
-                else if (ctrl == "M+1")
-                    instruction += 0b1110111 << 6;
-                else if (ctrl == "M-1")
-                    instruction += 0b1110010 << 6;
-                else if (ctrl == "D+M")
-                    instruction += 0b1000010 << 6;
-                else if (ctrl == "D-M")
-                    instruction += 0b1010011 << 6;
-                else if (ctrl == "M-D")
-                    instruction += 0b1000111 << 6;
-                else if (ctrl == "D&M")
-                    instruction += 0b1000000 << 6;
-                else if (ctrl == "D|M")
-                    instruction += 0b1010101 << 6;
-            }
+                instruction += this->ctrlTable.at(ctrl) << 6;
             break;
         }
     }
@@ -253,32 +169,33 @@ uint16_t Parse::parseInstruction
     return instruction;
 }
 
+// Returns a string up to but not including the first of a set of comparison characters
 std::string Parse::getUntil(const std::string& insStr, int startPos, std::vector<char> comp)
 {
-    std::vector<char> insChars;
+    std::vector<char> chars;
 
     for (int i = startPos; i < insStr.size(); i++)
     {
+        // Checks whether each character is contained within the comparison vector
         if (std::find(comp.begin(), comp.end(), insStr[i]) != comp.end())
             break;
-        insChars.push_back(insStr[i]);
+        chars.push_back(insStr[i]);
     }
 
-    std::string charsStr(insChars.begin(), insChars.end());
-    return charsStr;
+    return std::string(chars.begin(), chars.end());
 }
 
-// Removes whitespace and returns a vector of chars
+// Removes whitespace from a string
 std::string Parse::removeWhitespace(const std::string& str)
 {
     std::vector<char> chars;
 
     for (const char& c : str)
     {
+        // Will only push back to chars if the character is not whitespace
         if (std::find(this->whitespace.begin(), this->whitespace.end(), c) == this->whitespace.end())
             chars.push_back(c);
     }
 
-    std::string charsStr(chars.begin(), chars.end());
-    return charsStr;
+    return std::string(chars.begin(), chars.end());
 }
