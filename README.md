@@ -2,6 +2,13 @@
 
 Working C++ implementation of the HACK assembler
 
-## Run
+## Run Tests
 
->`./runtests`
+#### Run the Assembler
+
+`./runtests`
+
+#### Test the Files
+
+Run the 'CPU Emulator' and select one of the scripts in './output/'.
+
