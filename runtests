@@ -1,0 +1,7 @@
+#!/bin/bash
+
+make
+./bin/main.o ./test/add/Add.asm ./output/Add.hack
+./bin/main.o ./test/max/Max.asm ./output/Max.hack
+./bin/main.o ./test/pong/Pong.asm ./output/Pong.hack
+./bin/main.o ./test/rect/Rect.asm ./output/Rect.hack
